@@ -1,0 +1,72 @@
+swagger: '2.0'
+info:
+  title: "API FOR GETTING INFO ABOUT MOVIES AND INSTA PROFILES"
+  version: 1.0.0
+host: HOST
+x-google-management:
+  metrics:
+    - name: "api-quota"
+      displayName: "API QUOTA"
+      valueType: INT64
+      metricKind: DELTA
+quota:
+  limits:
+    - name: "api-request"
+      metric: "api-quota"
+      unit: "1/min/{project}"
+      values:
+        STANDARD: 100
+
+
+paths:
+  "/movies/*":
+    "get":
+        operationId: movies-api 
+        description: "you can get movies info by searching through title"
+        x-google-backend:
+            address: MOVIES_API_URL
+            path_translation: APPEND_PATH_TO_ADDRESS
+        parameters:
+        - name: title 
+          in: path 
+          required: true
+          type: string
+        responses:
+          '200':
+             description: "GOOD RESPONSE"
+             schema:
+                 type: string
+        security:
+        - api_key: []
+        x-google-quota:
+           metricCosts:
+            api-quota: 1
+
+  "/user/*":
+      "get":
+         summary : "TO GET THE INFO ABOUT INSTA PROFILE BY ENTERING USERNAME"
+         operationId: insta-profile-api 
+         x-google-backend:
+             address: INSTA_PROFILE_API_URL
+             path_translation: APPEND_PATH_TO_ADDRESS
+         parameters:
+          - name: userid 
+            in: path 
+            required: true 
+            type: string
+         responses:
+           200:
+              schema:
+                type: string
+              description: "good response" 
+         security:
+         - api_key: []
+         x-google-quota:
+           metricCosts:
+            api-quota: 2
+securityDefinitions:
+ api_key:
+    type: "apiKey"
+    name: "key"
+    in: "query"
+
