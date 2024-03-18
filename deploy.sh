@@ -4,23 +4,42 @@ read PROJECT_ID
 gcloud config set project $PROJECT_ID 
 gcloud services enable run.googleapis.com endpoints.googleapis.com \
 cloudbuild.googleapis.com servicecontrol.googleapis.com servicemanagement.googleapis.com \
-artifactregistry.googleapis.com 
+
+artifactregistry.googleapis.com  secretmanager.googleapis.com
 cd service-1 
 echo "ENTER YOUR RAPID API KEY "
 read API_KEY_1
+# First we need to create one service-account for each cloud run service and secret accessor iam role to respective secrets in secret manager
+
+gcloud iam service-accounts create insta-api-run-service
+gcloud iam service-accounts create omdb-api-run-service 
+# Now we need to create secrets 
+echo -n $API_KEY_1 |gcloud secrets create rapid-api-secret --replication-policy automatic \
+--data-file -
+gcloud secrets add-iam-policy-binding rapid-api-secret \
+--member "serviceAcccount:insta-api-run-service@${PROJECT_ID}.iam.gserviceaccount.com" \
+--role roles/secretmanager.secretAccessor
+
 gcloud run deploy insta-profile-api --source . \
 --ignore-file .gitignore \
 --no-allow-unauthenticated \
 --region us-central1 \ 
---set-env-vars=API_KEY=$API_KEY_1 
+--service-account insta-api-run-service@${PROJECT_ID}.iam.gserviceaccount.com \
+--update-secrets=API_KEY=rapid-api-secret:latest
 cd ../service-2
 echo "ENTER YOUR API KEY FOR OMDB API"
 read API_KEY_2
+echo -n $API_KEY_2 |gcloud secrets create omdb-api-secret --replication-policy automatic \
+--data-file -
+gcloud secrets add-iam-policy-binding omdb-api-secret \
+--member "serviceAcccount:omdb-api-run-service@${PROJECT_ID}.iam.gserviceaccount.com" \
+--role roles/secretmanager.secretAccessor
 gcloud run deploy movies-api --source . \
 --ignore-file .gitignore \
 --no-allow-unauthenticated \
 --region us-central1 \ 
---set-env-vars=API_KEY=$API_KEY_2
+--service-account nsta-api-run-service@${PROJECT_ID}.iam.gserviceaccount.com \
+--update-secrets=API_KEY=omdb-api-secret:latest
 cd ../
 gcloud iam service-accounts create endpoints-run-sa 
 gcloud run services add-iam-policy-binding insta-profile-api  --region us-central1 \
